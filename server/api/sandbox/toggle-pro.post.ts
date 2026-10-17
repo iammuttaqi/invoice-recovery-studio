@@ -1,9 +1,12 @@
 import { defineEventHandler, readBody } from 'h3'
 import { getPrisma } from '../../utils/prisma'
+import { ToggleSandboxSchema } from '../../utils/validation'
 
 export default defineEventHandler(async (event) => {
   const prisma = getPrisma()
-  const body = await readBody(event).catch(() => ({}))
+  const rawBody = await readBody(event).catch(() => ({}))
+  const parsed = ToggleSandboxSchema.safeParse(rawBody || {})
+  const body = parsed.success ? parsed.data : {}
 
   let customer = event.context.customer || (await prisma.customer.findFirst())
 
@@ -22,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   // Toggle between PRO and FREE unless explicit tier is requested
   let targetTier: 'FREE' | 'PRO' | 'LIFETIME'
-  if (body?.tier && ['FREE', 'PRO', 'LIFETIME'].includes(body.tier)) {
+  if (body?.tier) {
     targetTier = body.tier
   } else {
     targetTier = customer.tier === 'FREE' ? 'PRO' : 'FREE'

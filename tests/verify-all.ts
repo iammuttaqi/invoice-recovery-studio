@@ -7,6 +7,12 @@ import { generateLetterNotice, ESCALATION_STAGES } from '../server/utils/letterT
 import { getPrisma, ensureDatabaseSchema } from '../server/utils/prisma'
 import generateHandler from '../server/api/recovery/generate.post'
 import checkoutHandler from '../server/api/checkout.post'
+import {
+  StatutoryCalculateSchema,
+  SettlementOfferSchema,
+  RecoveryGenerateSchema,
+  CreateInvoiceSchema
+} from '../server/utils/validation'
 
 let totalPassed = 0
 let totalFailed = 0
@@ -310,9 +316,71 @@ async function runComprehensiveVerification() {
   assert(true, 'Monetization test teardown: customer reset to baseline FREE tier')
 
   // =========================================================================
-  // 6. Anti-AI Slop Heuristic Audit
+  // 6. Security & Zod Input Validation Verification
   // =========================================================================
-  console.log('\n--- 6. Standards 4.0 Anti-AI Slop Heuristic Audit ---')
+  console.log('\n--- 6. Security & Zod Input Validation Verification ---')
+  // 6.1 Statutory calculate validation
+  const validCalc = StatutoryCalculateSchema.safeParse({
+    principalAmount: 5000,
+    currency: 'USD',
+    jurisdiction: 'US',
+    dueDate: '2026-08-01'
+  })
+  assert(validCalc.success, 'Valid statutory calculation payload accepted by Zod')
+
+  const invalidCalc = StatutoryCalculateSchema.safeParse({
+    principalAmount: -100, // Negative should fail
+    dueDate: '2026-08-01'
+  })
+  assert(!invalidCalc.success, 'Negative principal amount rejected by Zod')
+
+  // 6.2 Settlement offer validation
+  const validSettlement = SettlementOfferSchema.safeParse({
+    principalAmount: 10000,
+    discountPct: 8.0,
+    windowHours: 48
+  })
+  assert(validSettlement.success, 'Valid settlement offer payload accepted by Zod')
+
+  const invalidSettlement = SettlementOfferSchema.safeParse({
+    principalAmount: 10000,
+    discountPct: 95 // Exceeds max 50%
+  })
+  assert(!invalidSettlement.success, 'Out-of-range discount concession rejected by Zod')
+
+  // 6.3 Recovery letter generation validation
+  const validGen = RecoveryGenerateSchema.safeParse({
+    invoiceId: 'inv-test-123',
+    stageNumber: 2
+  })
+  assert(validGen.success, 'Valid recovery letter generation payload accepted by Zod')
+
+  const invalidGen = RecoveryGenerateSchema.safeParse({
+    invoiceId: '', // Empty invoice ID should fail
+    stageNumber: 5 // Stage 5 is out of bounds (1-4)
+  })
+  assert(!invalidGen.success, 'Out-of-bounds stage number or missing invoiceId rejected by Zod')
+
+  // 6.4 Invoice creation schema validation
+  const validInvoice = CreateInvoiceSchema.safeParse({
+    invoiceNumber: 'INV-VALID-001',
+    clientName: 'Legitimate Corp',
+    principalAmount: 2500,
+    dueDate: '2026-09-01'
+  })
+  assert(validInvoice.success, 'Valid invoice creation payload accepted by Zod')
+
+  const invalidInvoice = CreateInvoiceSchema.safeParse({
+    invoiceNumber: '',
+    clientName: 'Legitimate Corp',
+    principalAmount: 0 // Zero or negative not allowed
+  })
+  assert(!invalidInvoice.success, 'Empty invoice reference or zero principal rejected by Zod')
+
+  // =========================================================================
+  // 7. Anti-AI Slop Heuristic Audit
+  // =========================================================================
+  console.log('\n--- 7. Standards 4.0 Anti-AI Slop Heuristic Audit ---')
   const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E0}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/u
 
   const genericBuzzwords = [
@@ -391,9 +459,9 @@ async function runComprehensiveVerification() {
   assert(lucideImportsCount > 0, `Verified ${lucideImportsCount} active semantic Lucide icon imports across components`)
 
   // =========================================================================
-  // 7. Serverless Cold-Start Database Integrity
+  // 8. Serverless Cold-Start Database Integrity
   // =========================================================================
-  console.log('\n--- 7. Serverless Cold-Start Database Integrity Verification ---')
+  console.log('\n--- 8. Serverless Cold-Start Database Integrity Verification ---')
   const prismaStarterPath = path.resolve(process.cwd(), 'prisma/starter.db')
   const publicStarterPath = path.resolve(process.cwd(), 'public/starter.db')
 

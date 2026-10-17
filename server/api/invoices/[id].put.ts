@@ -1,5 +1,6 @@
 import { defineEventHandler, readBody, getRouterParam, createError } from 'h3'
 import { getPrisma } from '../../utils/prisma'
+import { UpdateInvoiceSchema } from '../../utils/validation'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -12,7 +13,18 @@ export default defineEventHandler(async (event) => {
   }
 
   const prisma = getPrisma()
-  const body = await readBody(event)
+  const rawBody = await readBody(event)
+  const parsed = UpdateInvoiceSchema.safeParse(rawBody)
+
+  if (!parsed.success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      message: parsed.error.issues.map((i) => i.message).join(', ')
+    })
+  }
+
+  const body = parsed.data
 
   const existing = await prisma.invoice.findUnique({
     where: { id }

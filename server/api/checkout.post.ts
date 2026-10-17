@@ -1,11 +1,13 @@
 import { defineEventHandler, readBody, createError } from 'h3'
 import { getPrisma } from '../utils/prisma'
 import { getStripe, isStripeConfigured } from '../utils/stripe'
+import { CheckoutSchema } from '../utils/validation'
 import type { CheckoutResponse } from '../../types/billing'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
-  const plan = body?.plan || 'pro_monthly' // 'pro_monthly' | 'lifetime'
+  const rawBody = await readBody(event).catch(() => ({}))
+  const parsed = CheckoutSchema.safeParse(rawBody || {})
+  const plan = parsed.success ? parsed.data.plan : 'pro_monthly'
   const prisma = getPrisma()
 
   let customer = event.context.customer || (await prisma.customer.findFirst())

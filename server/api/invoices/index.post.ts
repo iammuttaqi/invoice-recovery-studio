@@ -1,5 +1,6 @@
 import { defineEventHandler, readBody, createError } from 'h3'
 import { getPrisma } from '../../utils/prisma'
+import { CreateInvoiceSchema } from '../../utils/validation'
 
 export default defineEventHandler(async (event) => {
   const prisma = getPrisma()
@@ -13,15 +14,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody(event)
+  const rawBody = await readBody(event)
+  const parsed = CreateInvoiceSchema.safeParse(rawBody)
 
-  if (!body.invoiceNumber || !body.clientName || !body.principalAmount || !body.dueDate) {
+  if (!parsed.success) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Bad Request',
-      message: 'invoiceNumber, clientName, principalAmount, and dueDate are required.'
+      message: parsed.error.issues.map((i) => i.message).join(', ')
     })
   }
+
+  const body = parsed.data
 
   const isPro = customer.tier === 'PRO' || customer.tier === 'LIFETIME'
   const activeCount = await prisma.invoice.count({

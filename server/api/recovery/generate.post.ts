@@ -3,18 +3,22 @@ import { getPrisma } from '../../utils/prisma'
 import { calculateStatutoryDebt } from '../../utils/statutoryRates'
 import { calculateSettlementOffer } from '../../utils/settlementCalculator'
 import { generateLetterNotice, ESCALATION_STAGES } from '../../utils/letterTemplates'
+import { RecoveryGenerateSchema } from '../../utils/validation'
 
 export default defineEventHandler(async (event) => {
   const prisma = getPrisma()
-  const body = await readBody(event)
+  const rawBody = await readBody(event)
+  const parsed = RecoveryGenerateSchema.safeParse(rawBody)
 
-  if (!body || !body.invoiceId || body.stageNumber === undefined) {
+  if (!parsed.success) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Bad Request',
-      message: 'invoiceId and stageNumber are required.'
+      message: parsed.error.issues.map((i) => i.message).join(', ')
     })
   }
+
+  const body = parsed.data
 
   // Ensure customer context
   let customer = event.context.customer
