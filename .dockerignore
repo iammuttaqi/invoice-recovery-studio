@@ -1,0 +1,12 @@
+node_modules
+.nuxt
+.output
+.vercel
+dist
+.git
+.DS_Store
+*.log
+prisma/*.db
+prisma/*.db-journal
+!prisma/starter.db
+!public/starter.db
