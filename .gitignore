@@ -1,0 +1,31 @@
+# Nuxt & Node build artifacts
+node_modules/
+.nuxt/
+.output/
+.vercel/
+dist/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# SQLite local working DBs
+prisma/*.db
+prisma/*.db-journal
+prisma/*.sqlite
+prisma/*.sqlite-journal
+
+# Whitelist bundled template databases
+!prisma/starter.db
+!public/starter.db

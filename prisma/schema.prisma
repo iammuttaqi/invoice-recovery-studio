@@ -1,0 +1,79 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Customer model: Handles tenancy, tier entitlement (FREE, PRO, LIFETIME), and usage quota tracking
+model Customer {
+  id               String               @id @default(uuid())
+  email            String               @unique
+  organizationName String               @default("Independent Studio")
+  stripeCustomerId String?              @unique
+  subscriptionId   String?
+  tier             String               @default("FREE") // "FREE", "PRO", "LIFETIME"
+  usageCount       Int                  @default(0)       // Incremented on letter generation
+  quotaLimit       Int                  @default(3)       // Free tier default: 3 letters / month
+  quotaResetDate   DateTime             @default(now())
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  
+  // Relations
+  invoices         Invoice[]
+
+  @@index([email])
+  @@index([stripeCustomerId])
+}
+
+// Invoice model: Stores client debt records, jurisdictions, and aging delinquency parameters
+model Invoice {
+  id                   String               @id @default(uuid())
+  customerId           String
+  invoiceNumber        String               // e.g. "INV-2026-089"
+  clientName           String               // Debtor company or principal name
+  clientEmail          String?
+  clientAddress        String?              // Required for formal PDF letterhead
+  clientCompanyNumber  String?              // e.g. UK Companies House # or US EIN
+  issueDate            DateTime
+  dueDate              DateTime
+  principalAmount      Float                // Outstanding face value
+  currency             String               @default("USD") // "USD", "GBP", "EUR"
+  jurisdiction         String               @default("US")  // "US", "UK", "EU"
+  status               String               @default("OVERDUE") // "PENDING", "OVERDUE", "RESOLVED"
+  notes                String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  // Relations
+  customer             Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  escalations          RecoveryEscalation[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+// RecoveryEscalation model: Snapshot of a generated recovery escalation notice and calculated claims
+model RecoveryEscalation {
+  id                       String    @id @default(uuid())
+  invoiceId                String
+  stageNumber              Int       // 1: Courtesy, 2: Administrative, 3: Statutory, 4: Legal LBA
+  stageName                String    // Descriptive stage name
+  daysOverdue              Int       // Snapshot of days past due at generation
+  interestAccrued          Float     // Calculated statutory interest
+  statutoryFee             Float     // Fixed statutory compensation fee (£40-£100, €40, $0)
+  totalClaimAmount         Float     // principalAmount + interestAccrued + statutoryFee
+  letterMarkdown           String    // Complete interpolated letter content
+  settlementDiscountAmount Float?    // Discount value if 48h settlement active
+  settlementDeadline       DateTime? // Expiration timestamp for fast settlement (now + 48h)
+  generatedAt              DateTime  @default(now())
+
+  // Relations
+  invoice                  Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([stageNumber])
+}
