@@ -6,7 +6,7 @@ function assert(condition: boolean, message: string) {
   if (!condition) {
     throw new Error(`Assertion failed: ${message}`)
   }
-  console.log(`✓ ${message}`)
+  console.log(`[PASS] ${message}`)
 }
 
 async function runTests() {

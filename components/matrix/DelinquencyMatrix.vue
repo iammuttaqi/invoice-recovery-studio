@@ -121,7 +121,7 @@ const { activeBucket, bucketMetrics, ledgerTotals, selectBucket } = useInvoiceRe
         subtitle="Legal Demand / Letter Before Action"
         :count="bucketMetrics['60+'].count"
         :total-claim="bucketMetrics['60+'].totalClaim"
-        :is-active="activeBucket === '60+''"
+        :is-active="activeBucket === '60+'"
         @select="selectBucket"
       />
     </div>

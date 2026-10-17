@@ -5,7 +5,7 @@ import { generateLetterNotice } from '../server/utils/letterTemplates'
 
 function assert(condition: boolean, msg: string) {
   if (!condition) throw new Error(`Assertion failed: ${msg}`)
-  console.log(`✓ ${msg}`)
+  console.log(`[PASS] ${msg}`)
 }
 
 async function testBackend() {
