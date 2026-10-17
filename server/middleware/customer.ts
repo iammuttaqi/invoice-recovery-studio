@@ -1,5 +1,5 @@
 import { defineEventHandler } from 'h3'
-import { getPrisma } from '../utils/prisma'
+import { getPrisma, ensureDatabaseReady } from '../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   // Only process API routes
@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const prisma = getPrisma()
+  await ensureDatabaseReady(prisma)
 
   try {
     // Find default customer or first available

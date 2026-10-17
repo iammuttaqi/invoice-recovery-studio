@@ -1,5 +1,5 @@
-import { defineEventHandler, getQuery } from 'h3'
-import { getPrisma } from '../../utils/prisma'
+import { defineEventHandler } from 'h3'
+import { getPrisma, ensureDatabaseReady } from '../../utils/prisma'
 
 export const SAMPLE_PRESETS = [
   {
@@ -44,11 +44,14 @@ export const SAMPLE_PRESETS = [
 ]
 
 export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
-  const shouldSeed = query.seed === 'true'
+  const rawUrl = (event.node?.req as any)?.url || event.path || ''
+  const queryString = rawUrl.includes('?') ? rawUrl.split('?')[1] : ''
+  const params = new URLSearchParams(queryString)
+  const shouldSeed = params.get('seed') === 'true'
 
   if (shouldSeed) {
     const prisma = getPrisma()
+    await ensureDatabaseReady(prisma)
     const customer = event.context.customer || (await prisma.customer.findFirst())
 
     if (customer) {

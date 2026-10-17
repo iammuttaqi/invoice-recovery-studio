@@ -236,12 +236,18 @@ export function getPrisma(): PrismaClient {
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error']
   })
 
-  // Ensure tables and default records asynchronously
-  ensureDatabaseSchema(prismaInstance).catch((err) => {
-    console.error('[Prisma Cold-Start] Failed initial schema check:', err)
-  })
-
   return prismaInstance
+}
+
+let initPromise: Promise<void> | null = null
+
+export async function ensureDatabaseReady(prisma?: PrismaClient): Promise<void> {
+  if (isSchemaInitialized) return
+  const client = prisma || getPrisma()
+  if (!initPromise) {
+    initPromise = ensureDatabaseSchema(client)
+  }
+  await initPromise
 }
 
 export { ensureDatabaseSchema }

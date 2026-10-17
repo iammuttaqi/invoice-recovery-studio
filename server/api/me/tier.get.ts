@@ -1,9 +1,10 @@
 import { defineEventHandler } from 'h3'
-import { getPrisma } from '../../utils/prisma'
+import { getPrisma, ensureDatabaseReady } from '../../utils/prisma'
 import type { CustomerBillingState } from '../../../types/billing'
 
 export default defineEventHandler(async (event) => {
   const prisma = getPrisma()
+  await ensureDatabaseReady(prisma)
   let customer = event.context.customer
 
   if (!customer) {

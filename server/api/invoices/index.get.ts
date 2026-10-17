@@ -1,10 +1,11 @@
 import { defineEventHandler } from 'h3'
-import { getPrisma } from '../../utils/prisma'
+import { getPrisma, ensureDatabaseReady } from '../../utils/prisma'
 import { calculateStatutoryDebt } from '../../utils/statutoryRates'
 import type { InvoiceViewModel, AgingBucket } from '../../../types/recovery'
 
 export default defineEventHandler(async (event) => {
   const prisma = getPrisma()
+  await ensureDatabaseReady(prisma)
   const customer = event.context.customer || (await prisma.customer.findFirst())
 
   if (!customer) {

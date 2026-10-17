@@ -29,3 +29,4 @@ prisma/*.sqlite-journal
 # Whitelist bundled template databases
 !prisma/starter.db
 !public/starter.db
+.vercel
